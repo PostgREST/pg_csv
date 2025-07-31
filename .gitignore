@@ -1,0 +1,9 @@
+*.control
+regression.*
+results/
+*.so
+*.o
+*.bc
+*.diffs
+pgbench_log.*
+.history

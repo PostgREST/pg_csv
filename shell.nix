@@ -1,0 +1,32 @@
+with import (builtins.fetchTarball {
+  name = "25.05";
+  url = "https://github.com/NixOS/nixpkgs/archive/refs/tags/25.05.tar.gz";
+  sha256 = "sha256:1915r28xc4znrh2vf4rrjnxldw2imysz819gzhk9qlrkqanmfsxd";
+}) {};
+mkShell {
+  buildInputs =
+    let
+      xpg = import (fetchFromGitHub {
+      owner  = "steve-chavez";
+      repo   = "xpg";
+      rev    = "v1.5.0";
+      sha256 = "sha256-Ja7pa6RoJ4Bxa0/lb6G/X3RdUYSaomqeEO+ZfsHHGqQ=";
+    });
+    style =
+      writeShellScriptBin "pg_csv-style" ''
+        ${clang-tools}/bin/clang-format -i src/*
+      '';
+    styleCheck =
+      writeShellScriptBin "pg_csv-style-check" ''
+        ${clang-tools}/bin/clang-format -i src/*
+        ${git}/bin/git diff-index --exit-code HEAD -- '*.c'
+      '';
+    in [
+      xpg.xpg
+      style
+      styleCheck
+    ];
+  shellHook = ''
+    export HISTFILE=.history
+  '';
+}

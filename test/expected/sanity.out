@@ -1,0 +1,18 @@
+SELECT csv_agg(x) AS body
+FROM   projects x;
+             body              
+-------------------------------
+ id,name,client_id            +
+ 1,Windows 7,1                +
+ 2,"has,comma",1              +
+ ,,                           +
+ 4,OSX,2                      +
+ ,"has""quote",               +
+ 5,"has,comma and ""quote""",7+
+ 6,"has                       +
+  LF",7                       +
+ 7,"has \r CR",8              +
+ 8,"has \r                    +
+  CRLF""",8
+(1 row)
+
