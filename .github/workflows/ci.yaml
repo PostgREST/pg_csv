@@ -55,7 +55,7 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Run loadtest
-        run: nix-shell --run "./bench/loadtest.sh ${{ matrix.kind }}"
+        run: nix-shell --run "./bench/loadtest.sh ${{ matrix.kind }}" >> "$GITHUB_STEP_SUMMARY"
 
   coverage:
 
