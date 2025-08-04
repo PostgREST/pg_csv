@@ -3,13 +3,26 @@ create function csv_agg_transfn(internal, anyelement)
   language c
   as 'pg_csv';
 
+create function csv_agg_transfn(internal, anyelement, "char")
+  returns internal
+  language c
+  as 'pg_csv';
+
 create function csv_agg_finalfn(internal)
   returns text
   language c
   as 'pg_csv';
 
+create aggregate csv_agg(anyelement, "char") (
+  sfunc     = csv_agg_transfn,
+  stype     = internal,
+  finalfunc = csv_agg_finalfn,
+  parallel  = safe
+);
+
 create aggregate csv_agg(anyelement) (
-  sfunc      = csv_agg_transfn,
-  stype      = internal,
-  finalfunc  = csv_agg_finalfn
+  sfunc     = csv_agg_transfn,
+  stype     = internal,
+  finalfunc = csv_agg_finalfn,
+  parallel  = safe
 );

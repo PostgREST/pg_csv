@@ -2,10 +2,9 @@
 
 PG_MODULE_MAGIC;
 
-static const char NEWLINE   = '\n';
-static const char DELIMITER = ',';
-static const char DQUOTE    = '"';
-static const char CR        = '\r';
+static const char NEWLINE = '\n';
+static const char DQUOTE  = '"';
+static const char CR      = '\r';
 
 typedef struct {
   StringInfoData accum_buf;
@@ -14,17 +13,21 @@ typedef struct {
   TupleDesc      tupdesc;
 } CsvAggState;
 
+static inline bool is_reserved(char c) {
+  return c == DQUOTE || c == NEWLINE || c == CR;
+}
+
 // Any comma, quote, CR, LF requires quoting as per RFC https://www.ietf.org/rfc/rfc4180.txt
-static inline bool needs_quote(const char *s, size_t n) {
+static inline bool needs_quote(const char *s, size_t n, char delim) {
   while (n--) {
     char c = *s++;
-    if (c == DELIMITER || c == DQUOTE || c == NEWLINE || c == CR) return true;
+    if (c == delim || is_reserved(c)) return true;
   }
   return false;
 }
 
-static inline void csv_append_field(StringInfo buf, const char *s, size_t n) {
-  if (!needs_quote(s, n)) {
+static inline void csv_append_field(StringInfo buf, const char *s, size_t n, char delim) {
+  if (!needs_quote(s, n, delim)) {
     appendBinaryStringInfo(buf, s, n);
   } else {
     appendStringInfoChar(buf, DQUOTE);
@@ -72,6 +75,10 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
 
   HeapTupleHeader next = PG_GETARG_HEAPTUPLEHEADER(1);
 
+  char delim = PG_NARGS() >= 3 && !PG_ARGISNULL(2) ? PG_GETARG_CHAR(2) : ',';
+
+  if (is_reserved(delim)) ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("delimiter cannot be newline, carriage return or double quote")));
+
   // build header and cache tupdesc once
   if (!state->header_done) {
     TupleDesc tdesc = lookup_rowtype_tupdesc(HeapTupleHeaderGetTypeId(next), HeapTupleHeaderGetTypMod(next));
@@ -83,10 +90,10 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
         continue;
 
       if (i > 0) // only append delimiter after the first value
-        appendStringInfoChar(&state->accum_buf, DELIMITER);
+        appendStringInfoChar(&state->accum_buf, delim);
 
       char *cstr = NameStr(att->attname);
-      csv_append_field(&state->accum_buf, cstr, strlen(cstr));
+      csv_append_field(&state->accum_buf, cstr, strlen(cstr), delim);
     }
 
     appendStringInfoChar(&state->accum_buf, NEWLINE);
@@ -119,12 +126,12 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
     if (att->attisdropped) // pg always keeps dropped columns, guard against this
       continue;
 
-    if (i > 0) appendStringInfoChar(&state->accum_buf, DELIMITER);
+    if (i > 0) appendStringInfoChar(&state->accum_buf, delim);
 
     if (nulls[i]) continue; // empty field for NULL
 
     char *cstr = datum_to_cstring(datums[i], att->atttypid);
-    csv_append_field(&state->accum_buf, cstr, strlen(cstr));
+    csv_append_field(&state->accum_buf, cstr, strlen(cstr), delim);
   }
 
   PG_RETURN_POINTER(state);
