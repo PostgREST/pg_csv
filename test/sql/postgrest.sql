@@ -6,19 +6,9 @@ create function getproject(id int) returns setof projects
 $_$;
 \echo
 
--- this is postgREST CSV query, it produces the same result as our `csv_agg` (see other test)
+-- this is postgREST CSV query, it produces the same result as our `csv_agg` (see ../expected/sanity.out)
 WITH pgrst_source AS (
     SELECT "projects".* FROM "projects"
-)
-SELECT
-    (SELECT coalesce(string_agg(a.k, ','), '')  FROM (SELECT json_object_keys(r)::text as k FROM (SELECT row_to_json(hh) as r from pgrst_source as hh limit 1) _) a) ||
-    E'\n' ||
-    coalesce(string_agg(substring(_postgrest_t::text, 2, length(_postgrest_t::text) - 2), E'\n'), '') AS body
-FROM ( SELECT * FROM pgrst_source ) _postgrest_t;
-
--- postgREST CSV query with a filter
-WITH pgrst_source AS (
-    SELECT "projects".* FROM "projects" WHERE  "projects"."id" = 2
 )
 SELECT
     (SELECT coalesce(string_agg(a.k, ','), '')  FROM (SELECT json_object_keys(r)::text as k FROM (SELECT row_to_json(hh) as r from pgrst_source as hh limit 1) _) a) ||
