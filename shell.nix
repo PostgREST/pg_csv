@@ -6,11 +6,10 @@ with import (builtins.fetchTarball {
 mkShell {
   buildInputs =
     let
-      xpg = import (fetchFromGitHub {
-      owner  = "steve-chavez";
+    xpg = import (fetchFromGitHub { owner  = "steve-chavez";
       repo   = "xpg";
-      rev    = "v1.5.0";
-      sha256 = "sha256-Ja7pa6RoJ4Bxa0/lb6G/X3RdUYSaomqeEO+ZfsHHGqQ=";
+      rev    = "v1.5.2";
+      sha256 = "sha256-NwhOi/BAZX0JdtFhtV3wgjagNTO5Kmq2Oy3sa+GyDv8=";
     });
     style =
       writeShellScriptBin "pg_csv-style" ''
