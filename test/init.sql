@@ -14,3 +14,9 @@ INSERT INTO projects VALUES (7, E'has \r CR', 8);
 INSERT INTO projects VALUES (8, E'has \r\n CRLF"', 8);
 
 create extension if not exists pg_csv;
+
+CREATE TABLE nasty (
+  "unusual"",names" INTEGER GENERATED ALWAYS AS IDENTITY,
+  text TEXT
+);
+INSERT INTO nasty (text) VALUES ('test');

@@ -16,3 +16,11 @@ FROM   projects x;
   CRLF""",8
 (1 row)
 
+-- proves that https://github.com/PostgREST/postgrest/issues/1371#issuecomment-519248984 is solved
+select csv_agg(x) from nasty x;
+        csv_agg         
+------------------------
+ "unusual"",names",text+
+ 1,test
+(1 row)
+
