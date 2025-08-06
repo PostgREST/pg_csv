@@ -5,9 +5,11 @@ PG_MODULE_MAGIC;
 static const char NEWLINE = '\n';
 static const char DQUOTE  = '"';
 static const char CR      = '\r';
+static const char BOM[3]  = "\xEF\xBB\xBF";
 
 typedef struct {
   char delim;
+  bool with_bom;
 } CsvOptions;
 
 typedef struct {
@@ -55,15 +57,16 @@ static char *datum_to_cstring(Datum datum, Oid typeoid) {
 
 static void parse_csv_options(HeapTupleHeader opts_hdr, CsvOptions *csv_opts) {
   // defaults
-  csv_opts->delim = ',';
+  csv_opts->delim    = ',';
+  csv_opts->with_bom = false;
 
   if (opts_hdr == NULL) return;
 
   TupleDesc desc = lookup_rowtype_tupdesc(HeapTupleHeaderGetTypeId(opts_hdr),
                                           HeapTupleHeaderGetTypMod(opts_hdr));
 
-  Datum values[1];
-  bool  nulls[1];
+  Datum values[2];
+  bool  nulls[2];
 
   heap_deform_tuple(
       &(HeapTupleData){.t_len = HeapTupleHeaderGetDatumLength(opts_hdr), .t_data = opts_hdr}, desc,
@@ -75,6 +78,10 @@ static void parse_csv_options(HeapTupleHeader opts_hdr, CsvOptions *csv_opts) {
       ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                       errmsg("delimiter cannot be newline, carriage return or "
                              "double quote")));
+  }
+
+  if (!nulls[1]) {
+    csv_opts->with_bom = DatumGetBool(values[1]);
   }
 
   ReleaseTupleDesc(desc);
@@ -117,6 +124,8 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
   if (!state->header_done) {
     TupleDesc tdesc =
         lookup_rowtype_tupdesc(HeapTupleHeaderGetTypeId(next), HeapTupleHeaderGetTypMod(next));
+
+    if (state->options->with_bom) appendBinaryStringInfo(&state->accum_buf, BOM, sizeof(BOM));
 
     // build header row
     for (int i = 0; i < tdesc->natts; i++) {

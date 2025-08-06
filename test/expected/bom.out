@@ -1,0 +1,38 @@
+-- this is done to avoid failing on a pure psql change that happened on postgres 16
+-- on pg <= 15 the BOM output adds one extra space, on pg 16 it doesn't
+\pset format unaligned
+\pset tuples_only on
+\echo
+
+-- include BOM (byte-order mark)
+SELECT csv_agg(x, csv_options(bom := true)) AS body
+FROM   projects x;
+﻿id,name,client_id
+1,Windows 7,1
+2,"has,comma",1
+,,
+4,OSX,2
+,"has""quote",
+5,"has,comma and ""quote""",7
+6,"has 
+ LF",7
+7,"has  CR",8
+8,"has 
+ CRLF""",8
+\echo
+
+-- include BOM with custom delimiter
+SELECT csv_agg(x, csv_options(delimiter := ';', bom := true)) AS body
+FROM   projects x;
+﻿id;name;client_id
+1;Windows 7;1
+2;has,comma;1
+;;
+4;OSX;2
+;"has""quote";
+5;"has,comma and ""quote""";7
+6;"has 
+ LF";7
+7;"has  CR";8
+8;"has 
+ CRLF""";8

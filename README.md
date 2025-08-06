@@ -35,10 +35,12 @@ select csv_agg(x) from projects x;
 (1 row)
 ```
 
-It also supports adding a custom delimiter.
+### Custom Delimiter
+
+You can use a custom delimiter.
 
 ```psql
-select csv_agg(x, '|') from projects x;
+select csv_agg(x, csv_options(delimiter := '|')) from projects x;
       csv_agg
 -------------------
  id|name|client_id+
@@ -50,5 +52,22 @@ select csv_agg(x, '|') from projects x;
 (1 row)
 ```
 
-> [!IMPORTANT]
+> [!NOTE]
 > Newline, carriage return and double quotes are not supported as delimiters to maintain the integrity of the separated values format.
+
+### BOM
+
+You can include a byte-order mark (BOM) to make the CSV compatible with Excel.
+
+```psql
+select csv_agg(x, csv_options(bom := true)) from projects x;
+      csv_agg
+-------------------
+﻿id,name,client_id+
+ 1,Windows 7,1    +
+ 2,Windows 10,1   +
+ 3,IOS,2          +
+ 4,OSX,2          +
+ 5,Orphan,
+(1 row)
+```
