@@ -1,9 +1,10 @@
 create type csv_options as (
   delimiter "char"
+, bom       bool
 );
 
-create function csv_options(delimiter "char" default ',') returns csv_options as $$
-  select row(delimiter)::csv_options;
+create or replace function csv_options(delimiter "char" default NULL, bom bool default NULL) returns csv_options as $$
+  select row(delimiter, bom)::csv_options;
 $$ language sql;
 
 create function csv_agg_transfn(internal, anyelement)
@@ -34,4 +35,3 @@ create aggregate csv_agg(anyelement, csv_options) (
   finalfunc = csv_agg_finalfn,
   parallel  = safe
 );
-
