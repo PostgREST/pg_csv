@@ -8,3 +8,4 @@ results/
 pgbench_log.*
 .history
 pg_csv--*.sql
+!pg_csv--*--*.sql
