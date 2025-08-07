@@ -10,7 +10,7 @@ AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 BinPackArguments: true
 BinPackParameters: true
-ColumnLimit: 1000
+ColumnLimit: 100
 IndentPPDirectives: AfterHash
 MaxEmptyLinesToKeep: 1
 PointerAlignment: Right

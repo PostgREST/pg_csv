@@ -53,11 +53,13 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
   CsvAggState *state;
 
   // first call when the accumulator is NULL
-  // pretty standard stuff, for example see the jsonb_agg transition function https://github.com/postgres/postgres/blob/3c4e26a62c31ebe296e3aedb13ac51a7a35103bd/src/backend/utils/adt/jsonb.c#L1521
+  // pretty standard stuff, for example see the jsonb_agg transition function
+  // https://github.com/postgres/postgres/blob/3c4e26a62c31ebe296e3aedb13ac51a7a35103bd/src/backend/utils/adt/jsonb.c#L1521
   if (PG_ARGISNULL(0)) {
     MemoryContext aggctx, oldctx;
 
-    if (!AggCheckCallContext(fcinfo, &aggctx)) elog(ERROR, "csv_agg_transfn called in non‑aggregate context");
+    if (!AggCheckCallContext(fcinfo, &aggctx))
+      elog(ERROR, "csv_agg_transfn called in non‑aggregate context");
 
     oldctx = MemoryContextSwitchTo(aggctx);
 
@@ -77,11 +79,14 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
 
   char delim = PG_NARGS() >= 3 && !PG_ARGISNULL(2) ? PG_GETARG_CHAR(2) : ',';
 
-  if (is_reserved(delim)) ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("delimiter cannot be newline, carriage return or double quote")));
+  if (is_reserved(delim))
+    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                    errmsg("delimiter cannot be newline, carriage return or double quote")));
 
   // build header and cache tupdesc once
   if (!state->header_done) {
-    TupleDesc tdesc = lookup_rowtype_tupdesc(HeapTupleHeaderGetTypeId(next), HeapTupleHeaderGetTypMod(next));
+    TupleDesc tdesc =
+        lookup_rowtype_tupdesc(HeapTupleHeaderGetTypeId(next), HeapTupleHeaderGetTypMod(next));
 
     // build header row
     for (int i = 0; i < tdesc->natts; i++) {
