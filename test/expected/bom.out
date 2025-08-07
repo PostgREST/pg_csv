@@ -36,3 +36,7 @@ FROM   projects x;
 7;"has  CR";8
 8;"has 
  CRLF""";8
+\echo
+
+\pset format aligned
+\pset tuples_only off

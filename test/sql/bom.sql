@@ -12,3 +12,7 @@ FROM   projects x;
 -- include BOM with custom delimiter
 SELECT csv_agg(x, csv_options(delimiter := ';', bom := true)) AS body
 FROM   projects x;
+\echo
+
+\pset format aligned
+\pset tuples_only off
