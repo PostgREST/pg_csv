@@ -71,3 +71,19 @@ select csv_agg(x, csv_options(bom := true)) from projects x;
  5,Orphan,
 (1 row)
 ```
+
+### Header
+
+You can omit or include the CSV header.
+
+```psql
+select csv_agg(x, csv_options(header := false)) from projects x;
+      csv_agg
+-------------------
+ 1,Windows 7,1    +
+ 2,Windows 10,1   +
+ 3,IOS,2          +
+ 4,OSX,2          +
+ 5,Orphan,
+(1 row)
+```

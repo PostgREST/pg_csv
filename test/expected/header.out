@@ -1,0 +1,78 @@
+-- header
+SELECT csv_agg(x, csv_options(header:=true)) AS body
+FROM   projects x;
+             body              
+-------------------------------
+ id,name,client_id            +
+ 1,Windows 7,1                +
+ 2,"has,comma",1              +
+ ,,                           +
+ 4,OSX,2                      +
+ ,"has""quote",               +
+ 5,"has,comma and ""quote""",7+
+ 6,"has                       +
+  LF",7                       +
+ 7,"has \r CR",8              +
+ 8,"has \r                    +
+  CRLF""",8
+(1 row)
+
+-- no header
+SELECT csv_agg(x, csv_options(header:=false)) AS body
+FROM   projects x;
+             body              
+-------------------------------
+ 1,Windows 7,1                +
+ 2,"has,comma",1              +
+ ,,                           +
+ 4,OSX,2                      +
+ ,"has""quote",               +
+ 5,"has,comma and ""quote""",7+
+ 6,"has                       +
+  LF",7                       +
+ 7,"has \r CR",8              +
+ 8,"has \r                    +
+  CRLF""",8
+(1 row)
+
+-- no header with delimiter
+SELECT csv_agg(x, csv_options(delimiter:='|', header:=false)) AS body
+FROM   projects x;
+             body              
+-------------------------------
+ 1|Windows 7|1                +
+ 2|has,comma|1                +
+ ||                           +
+ 4|OSX|2                      +
+ |"has""quote"|               +
+ 5|"has,comma and ""quote"""|7+
+ 6|"has                       +
+  LF"|7                       +
+ 7|"has \r CR"|8              +
+ 8|"has \r                    +
+  CRLF"""|8
+(1 row)
+
+-- see bom.sql for an explanation of these settings
+\pset format unaligned
+\pset tuples_only on
+\echo
+
+-- no header with delimiter and BOM
+SELECT csv_agg(x, csv_options(delimiter:='|', header:=false, bom := true)) AS body
+FROM   projects x;
+﻿1|Windows 7|1
+2|has,comma|1
+||
+4|OSX|2
+|"has""quote"|
+5|"has,comma and ""quote"""|7
+6|"has 
+ LF"|7
+7|"has  CR"|8
+8|"has 
+ CRLF"""|8
+\echo
+
+\pset format aligned
+\pset tuples_only off

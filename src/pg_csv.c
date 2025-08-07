@@ -10,6 +10,7 @@ static const char BOM[3]  = "\xEF\xBB\xBF";
 typedef struct {
   char delim;
   bool with_bom;
+  bool header;
 } CsvOptions;
 
 typedef struct {
@@ -59,14 +60,15 @@ static void parse_csv_options(HeapTupleHeader opts_hdr, CsvOptions *csv_opts) {
   // defaults
   csv_opts->delim    = ',';
   csv_opts->with_bom = false;
+  csv_opts->header   = true;
 
   if (opts_hdr == NULL) return;
 
   TupleDesc desc = lookup_rowtype_tupdesc(HeapTupleHeaderGetTypeId(opts_hdr),
                                           HeapTupleHeaderGetTypMod(opts_hdr));
 
-  Datum values[2];
-  bool  nulls[2];
+  Datum values[3];
+  bool  nulls[3];
 
   heap_deform_tuple(
       &(HeapTupleData){.t_len = HeapTupleHeaderGetDatumLength(opts_hdr), .t_data = opts_hdr}, desc,
@@ -82,6 +84,10 @@ static void parse_csv_options(HeapTupleHeader opts_hdr, CsvOptions *csv_opts) {
 
   if (!nulls[1]) {
     csv_opts->with_bom = DatumGetBool(values[1]);
+  }
+
+  if (!nulls[2]) {
+    csv_opts->header = DatumGetBool(values[2]);
   }
 
   ReleaseTupleDesc(desc);
@@ -128,19 +134,21 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
     if (state->options->with_bom) appendBinaryStringInfo(&state->accum_buf, BOM, sizeof(BOM));
 
     // build header row
-    for (int i = 0; i < tdesc->natts; i++) {
-      Form_pg_attribute att = TupleDescAttr(tdesc, i);
-      if (att->attisdropped) // pg always keeps dropped columns, guard against this
-        continue;
+    if (state->options->header) {
+      for (int i = 0; i < tdesc->natts; i++) {
+        Form_pg_attribute att = TupleDescAttr(tdesc, i);
+        if (att->attisdropped) // pg always keeps dropped columns, guard against this
+          continue;
 
-      if (i > 0) // only append delimiter after the first value
-        appendStringInfoChar(&state->accum_buf, state->options->delim);
+        if (i > 0) // only append delimiter after the first value
+          appendStringInfoChar(&state->accum_buf, state->options->delim);
 
-      char *cstr = NameStr(att->attname);
-      csv_append_field(&state->accum_buf, cstr, strlen(cstr), state->options->delim);
+        char *cstr = NameStr(att->attname);
+        csv_append_field(&state->accum_buf, cstr, strlen(cstr), state->options->delim);
+      }
+
+      appendStringInfoChar(&state->accum_buf, NEWLINE);
     }
-
-    appendStringInfoChar(&state->accum_buf, NEWLINE);
 
     state->tupdesc     = tdesc;
     state->header_done = true;
