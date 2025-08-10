@@ -1,8 +1,14 @@
-CREATE TABLE projects (
-    id integer,
-    name text,
-    client_id integer
+CREATE TABLE projects
+( id integer
+, name text
+, project_name text
+, client_id integer
+, subclient_id int
 );
+-- ensure these dropped column cases are tested
+ALTER TABLE projects DROP COLUMN project_name;
+ALTER TABLE projects DROP COLUMN subclient_id;
+
 INSERT INTO projects VALUES (1, 'Windows 7', 1);
 INSERT INTO projects VALUES (2, 'has,comma', 1);
 INSERT INTO projects VALUES (NULL, NULL, NULL);
