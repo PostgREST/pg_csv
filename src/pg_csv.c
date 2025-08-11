@@ -1,96 +1,20 @@
+#define PG_PRELUDE_IMPL
 #include "pg_prelude.h"
+
+#include "aggs.h"
+#include "general.h"
 
 PG_MODULE_MAGIC;
 
-static const char NEWLINE = '\n';
-static const char DQUOTE  = '"';
-static const char CR      = '\r';
-static const char BOM[3]  = "\xEF\xBB\xBF";
+PG_FUNCTION_INFO_V1(csv_agg_finalfn);
+Datum csv_agg_finalfn(PG_FUNCTION_ARGS) {
+  if (PG_ARGISNULL(0)) PG_RETURN_NULL();
 
-typedef struct {
-  char delim;
-  bool with_bom;
-  bool header;
-} CsvOptions;
+  CsvAggState *state = (CsvAggState *)PG_GETARG_POINTER(0);
 
-typedef struct {
-  StringInfoData accum_buf;
-  bool           header_done;
-  bool           first_row;
-  TupleDesc      tupdesc;
-  CsvOptions    *options;
-} CsvAggState;
+  if (state->tupdesc != NULL) ReleaseTupleDesc(state->tupdesc);
 
-static inline bool is_reserved(char c) {
-  return c == DQUOTE || c == NEWLINE || c == CR;
-}
-
-// Any comma, quote, CR, LF requires quoting as per RFC https://www.ietf.org/rfc/rfc4180.txt
-static inline bool needs_quote(const char *s, size_t n, char delim) {
-  while (n--) {
-    char c = *s++;
-    if (c == delim || is_reserved(c)) return true;
-  }
-  return false;
-}
-
-static inline void csv_append_field(StringInfo buf, const char *s, size_t n, char delim) {
-  if (!needs_quote(s, n, delim)) {
-    appendBinaryStringInfo(buf, s, n);
-  } else {
-    appendStringInfoChar(buf, DQUOTE);
-    for (size_t j = 0; j < n; j++) {
-      char c = s[j];
-      if (c == DQUOTE) appendStringInfoChar(buf, DQUOTE);
-      appendStringInfoChar(buf, c);
-    }
-    appendStringInfoChar(buf, DQUOTE);
-  }
-}
-
-static char *datum_to_cstring(Datum datum, Oid typeoid) {
-  Oid  out_func;
-  bool is_varlena;
-  getTypeOutputInfo(typeoid, &out_func, &is_varlena);
-
-  return OidOutputFunctionCall(out_func, datum);
-}
-
-static void parse_csv_options(HeapTupleHeader opts_hdr, CsvOptions *csv_opts) {
-  // defaults
-  csv_opts->delim    = ',';
-  csv_opts->with_bom = false;
-  csv_opts->header   = true;
-
-  if (opts_hdr == NULL) return;
-
-  TupleDesc desc = lookup_rowtype_tupdesc(HeapTupleHeaderGetTypeId(opts_hdr),
-                                          HeapTupleHeaderGetTypMod(opts_hdr));
-
-  Datum values[3];
-  bool  nulls[3];
-
-  heap_deform_tuple(
-      &(HeapTupleData){.t_len = HeapTupleHeaderGetDatumLength(opts_hdr), .t_data = opts_hdr}, desc,
-      values, nulls);
-
-  if (!nulls[0]) {
-    csv_opts->delim = DatumGetChar(values[0]);
-    if (is_reserved(csv_opts->delim))
-      ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                      errmsg("delimiter cannot be newline, carriage return or "
-                             "double quote")));
-  }
-
-  if (!nulls[1]) {
-    csv_opts->with_bom = DatumGetBool(values[1]);
-  }
-
-  if (!nulls[2]) {
-    csv_opts->header = DatumGetBool(values[2]);
-  }
-
-  ReleaseTupleDesc(desc);
+  PG_RETURN_TEXT_P(cstring_to_text_with_len(state->accum_buf.data, state->accum_buf.len));
 }
 
 PG_FUNCTION_INFO_V1(csv_agg_transfn);
@@ -187,15 +111,4 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
   }
 
   PG_RETURN_POINTER(state);
-}
-
-PG_FUNCTION_INFO_V1(csv_agg_finalfn);
-Datum csv_agg_finalfn(PG_FUNCTION_ARGS) {
-  if (PG_ARGISNULL(0)) PG_RETURN_NULL();
-
-  CsvAggState *state = (CsvAggState *)PG_GETARG_POINTER(0);
-
-  if (state->tupdesc != NULL) ReleaseTupleDesc(state->tupdesc);
-
-  PG_RETURN_TEXT_P(cstring_to_text_with_len(state->accum_buf.data, state->accum_buf.len));
 }

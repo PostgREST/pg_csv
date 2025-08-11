@@ -49,4 +49,17 @@
 
 #pragma GCC diagnostic pop
 
+char *datum_to_cstring(Datum datum, Oid typeoid);
 #endif /* PG_PRELUDE_H */
+
+#ifdef PG_PRELUDE_IMPL
+
+char *datum_to_cstring(Datum datum, Oid typeoid) {
+  Oid  out_func;
+  bool is_varlena;
+  getTypeOutputInfo(typeoid, &out_func, &is_varlena);
+
+  return OidOutputFunctionCall(out_func, datum);
+}
+
+#endif /* PG_PRELUDE_IMPL */
