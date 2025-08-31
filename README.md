@@ -90,6 +90,7 @@ select csv_agg(x, csv_options(delimiter := E'\t')) from projects x;
 > [!NOTE]
 > - Newline, carriage return and double quotes are not supported as delimiters to maintain the integrity of the separated values format.
 > - The delimiter can only be a single char, if a longer string is specified only the first char will be used.
+> - Why use a `csv_options` constructor function instead of extra arguments? Aggregates don't support named arguments in postgres, see a discussion on https://github.com/PostgREST/pg_csv/pull/2#issuecomment-3155740589.
 
 ### BOM
 
