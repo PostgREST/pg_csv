@@ -15,17 +15,17 @@ $$ language sql;
 create function csv_agg_transfn(internal, anyelement)
   returns internal
   language c
-  as 'pg_csv';
+as 'MODULE_PATHNAME';
 
 create function csv_agg_transfn(internal, anyelement, csv_options)
   returns internal
   language c
-  as 'pg_csv';
+as 'MODULE_PATHNAME';
 
 create function csv_agg_finalfn(internal)
   returns text
   language c
-  as 'pg_csv';
+as 'MODULE_PATHNAME';
 
 create aggregate csv_agg(anyelement) (
   sfunc     = csv_agg_transfn,
