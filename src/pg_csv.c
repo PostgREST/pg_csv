@@ -32,7 +32,7 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
     MemoryContext aggctx, oldctx;
 
     if (!AggCheckCallContext(fcinfo, &aggctx))
-      elog(ERROR, "csv_agg_transfn called in non‑aggregate context");
+      elog(ERROR, "%s called in non‑aggregate context", __func__);
 
     // here we extend the lifetime of the CsvAggState until the aggregate finishes
     oldctx = MemoryContextSwitchTo(aggctx);
