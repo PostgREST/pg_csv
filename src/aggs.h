@@ -15,6 +15,11 @@ typedef struct {
   CsvOptions    *options;
 } CsvAggState;
 
+extern const char NEWLINE;
+extern const char BOM[3];
+extern const char DQUOTE;
+extern const char CR;
+
 void parse_csv_options(HeapTupleHeader opts_hdr, CsvOptions *csv_opts);
 
 void csv_append_field(StringInfo buf, const char *s, size_t n, char delim);

@@ -1,11 +1,13 @@
+// This is the top module, all SQL exposed functions will be in this file
+
 #define PG_PRELUDE_IMPL
 #include "pg_prelude.h"
 
 #include "aggs.h"
-#include "general.h"
 
 PG_MODULE_MAGIC;
 
+// aggregate final function
 PG_FUNCTION_INFO_V1(csv_agg_finalfn);
 Datum csv_agg_finalfn(PG_FUNCTION_ARGS) {
   if (PG_ARGISNULL(0)) PG_RETURN_NULL();
@@ -17,6 +19,7 @@ Datum csv_agg_finalfn(PG_FUNCTION_ARGS) {
   PG_RETURN_TEXT_P(cstring_to_text_with_len(state->accum_buf.data, state->accum_buf.len));
 }
 
+// aggregate transition function
 PG_FUNCTION_INFO_V1(csv_agg_transfn);
 Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
   CsvAggState    *state = !PG_ARGISNULL(0) ? (CsvAggState *)PG_GETARG_POINTER(0) : NULL;
@@ -31,6 +34,7 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
     if (!AggCheckCallContext(fcinfo, &aggctx))
       elog(ERROR, "csv_agg_transfn called in non‑aggregate context");
 
+    // here we extend the lifetime of the CsvAggState until the aggregate finishes
     oldctx = MemoryContextSwitchTo(aggctx);
 
     state = palloc(sizeof(CsvAggState));
@@ -84,6 +88,7 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
   Datum *datums = (Datum *)palloc(mul_size(tuple_natts, sizeof(Datum)));
   bool  *nulls  = (bool *)palloc(mul_size(tuple_natts, sizeof(bool)));
 
+  // extract the values of the next row
   heap_deform_tuple(
       &(HeapTupleData){
         .t_len  = HeapTupleHeaderGetDatumLength(next),
