@@ -81,8 +81,8 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
   // build body
   int tuple_natts = state->tupdesc->natts;
 
-  Datum *datums = (Datum *)palloc(tuple_natts * sizeof(Datum));
-  bool  *nulls  = (bool *)palloc(tuple_natts * sizeof(bool));
+  Datum *datums = (Datum *)palloc(mul_size(tuple_natts, sizeof(Datum)));
+  bool  *nulls  = (bool *)palloc(mul_size(tuple_natts, sizeof(bool)));
 
   heap_deform_tuple(
       &(HeapTupleData){
