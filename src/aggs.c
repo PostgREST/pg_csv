@@ -24,32 +24,32 @@ static inline bool needs_quote(const char *s, size_t n, char delim) {
 
 void parse_csv_options(HeapTupleHeader opts_hdr, CsvOptions *csv_opts) {
   // defaults
-  csv_opts->delim    = ',';
-  csv_opts->with_bom = false;
-  csv_opts->header   = true;
+  csv_opts->delimiter = ',';
+  csv_opts->bom       = false;
+  csv_opts->header    = true;
 
   if (opts_hdr == NULL) return;
 
   TupleDesc desc = lookup_rowtype_tupdesc(HeapTupleHeaderGetTypeId(opts_hdr),
                                           HeapTupleHeaderGetTypMod(opts_hdr));
 
-  Datum values[3];
-  bool  nulls[3];
+  Datum values[csv_options_count];
+  bool  nulls[csv_options_count];
 
   heap_deform_tuple(
       &(HeapTupleData){.t_len = HeapTupleHeaderGetDatumLength(opts_hdr), .t_data = opts_hdr}, desc,
       values, nulls);
 
   if (!nulls[0]) {
-    csv_opts->delim = DatumGetChar(values[0]);
-    if (is_reserved(csv_opts->delim))
+    csv_opts->delimiter = DatumGetChar(values[0]);
+    if (is_reserved(csv_opts->delimiter))
       ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                       errmsg("delimiter cannot be newline, carriage return or "
                              "double quote")));
   }
 
   if (!nulls[1]) {
-    csv_opts->with_bom = DatumGetBool(values[1]);
+    csv_opts->bom = DatumGetBool(values[1]);
   }
 
   if (!nulls[2]) {
