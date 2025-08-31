@@ -59,7 +59,7 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
     TupleDesc tdesc =
         lookup_rowtype_tupdesc(HeapTupleHeaderGetTypeId(next), HeapTupleHeaderGetTypMod(next));
 
-    if (state->options->with_bom) appendBinaryStringInfo(&state->accum_buf, BOM, sizeof(BOM));
+    if (state->options->bom) appendBinaryStringInfo(&state->accum_buf, BOM, sizeof(BOM));
 
     // build header row
     if (state->options->header) {
@@ -69,10 +69,10 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
           continue;
 
         if (i > 0) // only append delimiter after the first value
-          appendStringInfoChar(&state->accum_buf, state->options->delim);
+          appendStringInfoChar(&state->accum_buf, state->options->delimiter);
 
         char *cstr = NameStr(att->attname);
-        csv_append_field(&state->accum_buf, cstr, strlen(cstr), state->options->delim);
+        csv_append_field(&state->accum_buf, cstr, strlen(cstr), state->options->delimiter);
       }
 
       appendStringInfoChar(&state->accum_buf, NEWLINE);
@@ -107,12 +107,12 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
     if (att->attisdropped) // pg always keeps dropped columns, guard against this
       continue;
 
-    if (i > 0) appendStringInfoChar(&state->accum_buf, state->options->delim);
+    if (i > 0) appendStringInfoChar(&state->accum_buf, state->options->delimiter);
 
     if (nulls[i]) continue; // empty field for NULL
 
     char *cstr = datum_to_cstring(datums[i], att->atttypid);
-    csv_append_field(&state->accum_buf, cstr, strlen(cstr), state->options->delim);
+    csv_append_field(&state->accum_buf, cstr, strlen(cstr), state->options->delimiter);
   }
 
   PG_RETURN_POINTER(state);

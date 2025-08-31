@@ -1,11 +1,13 @@
 #ifndef AGGS_H
 #define AGGS_H
 
+// mirrors the SQL csv_options type
 typedef struct {
-  char delim;
-  bool with_bom;
+  char delimiter;
+  bool bom;
   bool header;
 } CsvOptions;
+#define csv_options_count 3
 
 typedef struct {
   StringInfoData accum_buf;
