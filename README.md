@@ -12,7 +12,7 @@ Postgres has CSV support on the [COPY](https://www.postgresql.org/docs/current/s
 `pg_csv` offers flexible CSV processing as a solution.
 
 - Includes a CSV aggregate that composes with SQL expressions.
-- Native C extension, almost 2 times faster than SQL queries that try to output CSV (see our [CI results](https://github.com/PostgREST/pg_csv/actions/runs/17367407744)).
+- Native C extension, x2 times faster than SQL queries that try to output CSV (see our [CI results](https://github.com/PostgREST/pg_csv/actions/runs/17367727912)).
 - No dependencies except Postgres.
 
 ## Installation
