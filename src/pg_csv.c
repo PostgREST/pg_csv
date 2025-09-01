@@ -39,15 +39,22 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
 
     state = palloc(sizeof(CsvAggState));
     initStringInfo(&state->accum_buf);
-    state->header_done = false;
-    state->first_row   = true;
-    state->tupdesc     = NULL;
-    state->options     = palloc(sizeof(CsvOptions));
+    state->header_done    = false;
+    state->first_row      = true;
+    state->tupdesc        = NULL;
+    state->nullstr_len    = 0;
+    state->cached_nullstr = NULL;
+    state->options        = palloc(sizeof(CsvOptions));
 
     // we'll parse the csv options only once
     HeapTupleHeader opts_hdr =
         PG_NARGS() >= 3 && !PG_ARGISNULL(2) ? PG_GETARG_HEAPTUPLEHEADER(2) : NULL;
     parse_csv_options(opts_hdr, state->options);
+
+    if (state->options->nullstr) {
+      state->cached_nullstr = text_to_cstring(state->options->nullstr);
+      state->nullstr_len    = VARSIZE_ANY_EXHDR(state->options->nullstr);
+    }
 
     MemoryContextSwitchTo(oldctx);
   }
@@ -109,10 +116,14 @@ Datum csv_agg_transfn(PG_FUNCTION_ARGS) {
 
     if (i > 0) appendStringInfoChar(&state->accum_buf, state->options->delimiter);
 
-    if (nulls[i]) continue; // empty field for NULL
-
-    char *cstr = datum_to_cstring(datums[i], att->atttypid);
-    csv_append_field(&state->accum_buf, cstr, strlen(cstr), state->options->delimiter);
+    if (nulls[i]) {
+      if (state->cached_nullstr)
+        csv_append_field(&state->accum_buf, state->cached_nullstr, state->nullstr_len,
+                         state->options->delimiter);
+    } else {
+      char *cstr = datum_to_cstring(datums[i], att->atttypid);
+      csv_append_field(&state->accum_buf, cstr, strlen(cstr), state->options->delimiter);
+    }
   }
 
   PG_RETURN_POINTER(state);

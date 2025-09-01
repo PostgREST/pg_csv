@@ -1,0 +1,55 @@
+-- custom null string
+SELECT csv_agg(x, csv_options(nullstr:='<null>')) AS body
+FROM   projects x;
+             body              
+-------------------------------
+ id,name,client_id            +
+ 1,Windows 7,1                +
+ 2,"has,comma",1              +
+ <null>,<null>,<null>         +
+ 4,OSX,2                      +
+ <null>,"has""quote",<null>   +
+ 5,"has,comma and ""quote""",7+
+ 6,"has                       +
+  LF",7                       +
+ 7,"has \r CR",8              +
+ 8,"has \r                    +
+  CRLF""",8
+(1 row)
+
+-- custom null string with no header
+SELECT csv_agg(x, csv_options(nullstr:='NULL', header:=false)) AS body
+FROM   projects x;
+             body              
+-------------------------------
+ 1,Windows 7,1                +
+ 2,"has,comma",1              +
+ NULL,NULL,NULL               +
+ 4,OSX,2                      +
+ NULL,"has""quote",NULL       +
+ 5,"has,comma and ""quote""",7+
+ 6,"has                       +
+  LF",7                       +
+ 7,"has \r CR",8              +
+ 8,"has \r                    +
+  CRLF""",8
+(1 row)
+
+-- custom null string with no header and delimiter
+SELECT csv_agg(x, csv_options(nullstr:='~', delimiter:='|', header:=false)) AS body
+FROM   projects x;
+             body              
+-------------------------------
+ 1|Windows 7|1                +
+ 2|has,comma|1                +
+ ~|~|~                        +
+ 4|OSX|2                      +
+ ~|"has""quote"|~             +
+ 5|"has,comma and ""quote"""|7+
+ 6|"has                       +
+  LF"|7                       +
+ 7|"has \r CR"|8              +
+ 8|"has \r                    +
+  CRLF"""|8
+(1 row)
+
