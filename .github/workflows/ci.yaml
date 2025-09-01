@@ -37,7 +37,7 @@ jobs:
   loadtest:
     strategy:
       matrix:
-        kind: ['csv_agg', 'csv_agg_delim', 'csv_agg_delim_bom_nullstr', 'postgrest']
+        kind: ['postgrest', 'csv_agg', 'csv_agg_options']
     name: Loadtest
     runs-on: ubuntu-24.04
     steps:
