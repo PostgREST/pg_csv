@@ -27,6 +27,7 @@ void parse_csv_options(HeapTupleHeader opts_hdr, CsvOptions *csv_opts) {
   csv_opts->delimiter = ',';
   csv_opts->bom       = false;
   csv_opts->header    = true;
+  csv_opts->nullstr   = NULL;
 
   if (opts_hdr == NULL) return;
 
@@ -54,6 +55,10 @@ void parse_csv_options(HeapTupleHeader opts_hdr, CsvOptions *csv_opts) {
 
   if (!nulls[2]) {
     csv_opts->header = DatumGetBool(values[2]);
+  }
+
+  if (!nulls[3]) {
+    csv_opts->nullstr = DatumGetTextPP(values[3]);
   }
 
   ReleaseTupleDesc(desc);

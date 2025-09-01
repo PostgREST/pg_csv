@@ -127,6 +127,25 @@ select csv_agg(x, csv_options(header := false)) from projects x;
 (1 row)
 ```
 
+### Null string
+
+NULL values are represented by an empty string by default. This can be changed with the `nullstr` option.
+
+```sql
+SELECT csv_agg(x, csv_options(nullstr:='<NULL>')) AS body
+FROM   projects x;
+
+              body
+--------------------------------
+ id,name,client_id             +
+ 1,Death Star OS,1             +
+ 2,Windows 95 Rebooted,1       +
+ 3,"Project ""Comma,Please""",2+
+ 4,"Escape """"Plan""""",2     +
+ <NULL>,NULL & Void,<NULL>
+(1 row)
+```
+
 ## Limitations
 
 - For large bulk exports and imports, `COPY ... CSV` should still be preferred as its faster due to streaming support.

@@ -1,15 +1,17 @@
-create type csv_options as (
-  delimiter "char"
+create type csv_options as
+( delimiter "char"
 , bom       bool
 , header    bool
+, nullstr   text
 );
 
-create or replace function csv_options(
-  delimiter "char" default NULL,
-  bom       bool default NULL,
-  header    bool default NULL
+create or replace function csv_options
+( delimiter "char" default NULL
+, bom       bool default NULL
+, header    bool default NULL
+, nullstr   text default NULL
 ) returns csv_options as $$
-  select row(delimiter, bom, header)::csv_options;
+  select row(delimiter, bom, header, nullstr)::csv_options;
 $$ language sql;
 
 create function csv_agg_transfn(internal, anyelement)

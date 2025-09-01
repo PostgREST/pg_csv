@@ -3,18 +3,21 @@
 
 // mirrors the SQL csv_options type
 typedef struct {
-  char delimiter;
-  bool bom;
-  bool header;
+  char  delimiter;
+  bool  bom;
+  bool  header;
+  text *nullstr;
 } CsvOptions;
-#define csv_options_count 3
+#define csv_options_count 4
 
 typedef struct {
   StringInfoData accum_buf;
   bool           header_done;
   bool           first_row;
   TupleDesc      tupdesc;
+  int            nullstr_len;
   CsvOptions    *options;
+  char          *cached_nullstr;
 } CsvAggState;
 
 extern const char NEWLINE;
