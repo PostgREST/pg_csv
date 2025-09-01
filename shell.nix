@@ -20,10 +20,32 @@ mkShell {
         ${clang-tools}/bin/clang-format -i src/*
         ${git}/bin/git diff-index --exit-code HEAD -- '*.c'
       '';
+    loadtest =
+      writeShellScriptBin "pg_csv-loadtest" ''
+        set -euo pipefail
+
+        file=./bench/$1.sql
+
+        cat <<EOF
+        pgbench running for:
+
+        \`\`\`sql
+        $(< $file)
+        \`\`\`
+
+        results:
+
+        \`\`\`
+        $(${xpg.xpg}/bin/xpg pgbench -n -c 1 -T 30 -M prepared -f $file)
+        \`\`\`
+
+        EOF
+      '';
     in [
       xpg.xpg
       style
       styleCheck
+      loadtest
     ];
   shellHook = ''
     export HISTFILE=.history
