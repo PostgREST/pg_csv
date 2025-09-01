@@ -4,16 +4,16 @@
 [![Coverage Status](https://coveralls.io/repos/github/PostgREST/pg_csv/badge.svg)](https://coveralls.io/github/PostgREST/pg_csv)
 [![Tests](https://github.com/PostgREST/pg_csv/actions/workflows/ci.yaml/badge.svg)](https://github.com/PostgREST/pg_csv/actions)
 
-Postgres has the [COPY .. CSV](https://www.postgresql.org/docs/current/sql-copy.html) command, but `COPY` has problems:
+Postgres has CSV support on the [COPY](https://www.postgresql.org/docs/current/sql-copy.html) command, but `COPY` has problems:
 
 - It uses a special protocol, so it doesn't work with other standard features like [prepared statements](https://www.postgresql.org/docs/current/sql-prepare.html), [pipeline mode](https://www.postgresql.org/docs/current/libpq-pipeline-mode.html#LIBPQ-PIPELINE-USING) or [pgbench](https://www.postgresql.org/docs/current/pgbench.html).
 - Is not composable. You can't use COPY inside CTEs, subqueries, view definitions or as function arguments.
 
-`pg_csv` offers flexible CSV processing as a solution to these problems.
+`pg_csv` offers flexible CSV processing as a solution.
 
 - Includes a CSV aggregate that composes with SQL expressions.
-- Native C extension, almost 2 times faster than SQL queries that try to achieve CSV output (see our [CI results](https://github.com/PostgREST/pg_csv/actions/runs/17367407744)).
-- Simple installation, no dependencies except Postgres.
+- Native C extension, almost 2 times faster than SQL queries that try to output CSV (see our [CI results](https://github.com/PostgREST/pg_csv/actions/runs/17367407744)).
+- No dependencies except Postgres.
 
 ## Installation
 
