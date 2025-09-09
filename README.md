@@ -17,7 +17,7 @@ Postgres has CSV support on the [COPY](https://www.postgresql.org/docs/current/s
 
 ## Installation
 
-Clone this repo and run:
+PostgreSQL >= 12 is supported. Clone this repo and run:
 
 ```bash
 make && make install
