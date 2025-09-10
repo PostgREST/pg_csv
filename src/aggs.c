@@ -7,7 +7,7 @@
 const char NEWLINE = '\n';
 const char DQUOTE  = '"';
 const char CR      = '\r';
-const char BOM[3]  = "\xEF\xBB\xBF";
+const char BOM[]   = {0xEF, 0xBB, 0xBF};
 
 static inline bool is_reserved(char c) {
   return c == DQUOTE || c == NEWLINE || c == CR;
