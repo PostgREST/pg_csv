@@ -26,7 +26,7 @@ else
 endif
 
 EXTENSION = pg_csv
-EXTVERSION = 1.0
+EXTVERSION = 1.0.1
 
 DATA = $(wildcard sql/*--*.sql)
 
