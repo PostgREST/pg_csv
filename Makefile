@@ -34,7 +34,7 @@ EXTRA_CLEAN = sql/$(EXTENSION)--$(EXTVERSION).sql $(EXTENSION).control
 
 TESTS = $(wildcard test/sql/*.sql)
 REGRESS = $(patsubst test/sql/%.sql,%,$(TESTS))
-REGRESS_OPTS = --use-existing --inputdir=test
+REGRESS_OPTS = --inputdir=test
 
 MODULE_big = $(EXTENSION)
 SRC = $(wildcard $(SRC_DIR)/*.c)
