@@ -8,8 +8,8 @@ mkShellNoCC {
     let
     xpg = import (fetchFromGitHub { owner  = "steve-chavez";
       repo   = "xpg";
-      rev    = "v1.5.2";
-      sha256 = "sha256-NwhOi/BAZX0JdtFhtV3wgjagNTO5Kmq2Oy3sa+GyDv8=";
+      rev    = "v2.3.1";
+      sha256 = "sha256-dcJOAiyr5sisVQ65uSZFgqL7oKiPImSR5p80uk2t83E=";
     });
     style =
       writeShellScriptBin "pg_csv-style" ''
