@@ -23,3 +23,18 @@ CREATE TABLE nasty (
   text TEXT
 );
 INSERT INTO nasty (text) VALUES ('test');
+create table customers (
+  "Index" text,
+  "Customer Id" text,
+  "First Name" text,
+  "Last Name" text,
+  "Company" text,
+  "City" text,
+  "Country" text,
+  "Phone 1" text,
+  "Phone 2" text,
+  "Email" text,
+  "Subscription Date" text,
+  "Website" text
+);
+create table empty();

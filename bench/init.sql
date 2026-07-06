@@ -3,6 +3,21 @@
 
 create extension if not exists pg_csv;
 
+create unlogged table customers_csv (
+  "Index" text,
+  "Customer Id" text,
+  "First Name" text,
+  "Last Name" text,
+  "Company" text,
+  "City" text,
+  "Country" text,
+  "Phone 1" text,
+  "Phone 2" text,
+  "Email" text,
+  "Subscription Date" text,
+  "Website" text
+);
+
 CREATE TABLE customers (
   customer_id   CHAR(5) PRIMARY KEY,
   company_name  TEXT      NOT NULL,

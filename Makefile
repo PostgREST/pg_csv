@@ -38,6 +38,7 @@ REGRESS_OPTS = --inputdir=test
 
 MODULE_big = $(EXTENSION)
 SRC = $(wildcard $(SRC_DIR)/*.c)
+BENCH_DATA_DIR=bench/data
 
 ifdef BUILD_DIR
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRC))
@@ -53,6 +54,8 @@ all: sql/$(EXTENSION)--$(EXTVERSION).sql $(EXTENSION).control
 
 build: $(BUILD_DIR)/$(EXTENSION).$(SHARED_EXT) sql/$(EXTENSION)--$(EXTVERSION).sql $(EXTENSION).control
 
+bench: $(BENCH_DATA_DIR)/customers-1000000.csv
+
 $(BUILD_DIR)/.gitignore: sql/$(EXTENSION)--$(EXTVERSION).sql $(EXTENSION).control
 	mkdir -p $(BUILD_DIR)/extension
 	cp $(EXTENSION).control $(BUILD_DIR)/extension
@@ -62,8 +65,16 @@ $(BUILD_DIR)/.gitignore: sql/$(EXTENSION)--$(EXTVERSION).sql $(EXTENSION).contro
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(BUILD_DIR)/.gitignore
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/pg_csv.o: $(SRC_DIR)/csv.h $(SRC_DIR)/cparsec.h
+src/pg_csv.o: $(SRC_DIR)/csv.h $(SRC_DIR)/cparsec.h
+
 $(BUILD_DIR)/$(EXTENSION).$(SHARED_EXT): $(EXTENSION).$(SHARED_EXT)
 	mv $? $@
+
+$(BENCH_DATA_DIR)/customers-1000000.csv: $(BENCH_DATA_DIR)/customers-1000000.7z
+	7z e -y $< -o$(BENCH_DATA_DIR) $(notdir $@)
+# needed to not decompress everytime, 7z preserves archive original timestamp and that trips up make
+	touch $@
 
 sql/$(EXTENSION)--$(EXTVERSION).sql: sql/$(EXTENSION).sql
 	cp $< $@

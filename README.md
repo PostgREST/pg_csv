@@ -11,7 +11,7 @@ Postgres has CSV support on the [COPY](https://www.postgresql.org/docs/current/s
 
 `pg_csv` offers flexible CSV processing as a solution.
 
-- Includes a CSV aggregate that composes with SQL expressions.
+- Includes CSV export/import functions that compose with SQL expressions.
 - Native C extension, x2 times faster than SQL queries that try to output CSV
 - No dependencies except Postgres.
 
@@ -29,7 +29,9 @@ To install the extension:
 create extension pg_csv;
 ```
 
-## csv_agg
+## CSV Export
+
+### csv_agg
 
 Aggregate that builds a CSV respecting [RFC 4180](https://www.ietf.org/rfc/rfc4180.txt), quoting as required.
 
@@ -144,6 +146,46 @@ FROM   projects x;
  4,"Escape """"Plan""""",2     +
  <NULL>,NULL & Void,<NULL>
 (1 row)
+```
+
+## CSV Import
+
+### csv_read
+
+The `csv_read` function can read inline text values, respecting quoting and escaping inside quotes.
+
+```sql
+select id, name
+from csv_read(null::projects, E'1,IOS,4\n2,"Win""dows",4') where id = 2;
+ id |   name
+----+----------
+  2 | Win"dows
+```
+
+It can also be used to read from files inside the data directory.
+
+```sql
+select "First Name", "Company", "Website"
+from csv_read(
+  null::customers,
+  pg_read_file('data/customers-100.csv')
+)
+where "Index" = '4';
+ Index |           Customer Id           |         First Name         | Last Name | Company | City | Country | Phone 1 | Phone 2 | Email | Subscription Date | Website
+-------+---------------------------------+----------------------------+-----------+---------+------+---------+---------+---------+-------+-------------------+---------
+ Linda | Dominguez, Mcmillan and Donovan | http://www.good-lyons.com/ |           |         |      |         |         |         |       |                   |
+```
+
+This combines as usual with the `insert` statement.
+
+```sql
+insert into customers
+select *
+from csv_read(
+  null::customers,
+  pg_read_file('data/customers-100.csv')
+)
+limit 10; -- you can use LIMIT, OFFSET or WHERE
 ```
 
 ## Limitations

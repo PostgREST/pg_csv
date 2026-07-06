@@ -1,0 +1,67 @@
+-- can read an inline value
+select id, name
+from csv_read(null::projects, E'1,IOS,4\n2,"Win""dows",4') where id = 2;
+ id |   name   
+----+----------
+  2 | Win"dows
+(1 row)
+
+-- can read a CSV file in full
+select count(*) = 100 as all_read
+from csv_read(
+  null::customers,
+  pg_read_file('data/customers-100.csv')
+);
+ all_read 
+----------
+ t
+(1 row)
+
+-- can insert only some columns of a CSV
+insert into customers
+select "First Name", "Company", "Website"
+from csv_read(
+  null::customers,
+  pg_read_file('data/customers-100.csv')
+)
+where "Index" = '4';
+\echo
+
+-- check inserted columns
+select * from customers;
+ Index |           Customer Id           |         First Name         | Last Name | Company | City | Country | Phone 1 | Phone 2 | Email | Subscription Date | Website 
+-------+---------------------------------+----------------------------+-----------+---------+------+---------+---------+---------+-------+-------------------+---------
+ Linda | Dominguez, Mcmillan and Donovan | http://www.good-lyons.com/ |           |         |      |         |         |         |       |                   | 
+(1 row)
+
+-- clear inserted
+truncate customers;
+-- rejects NULL input
+select * from csv_read(null::projects, NULL::text);
+ERROR:  input must not be NULL
+\echo
+
+-- rejects empty row types
+select * from csv_read(null::empty, 'id,name');
+ERROR:  row type has no columns
+\echo
+
+-- rejects rows with the wrong number of columns
+select * from csv_read(
+  null::projects,
+  E'1,IOS,4\n2,Windows'
+);
+ERROR:  row 2 has 2 columns, expected 3
+\echo
+
+-- rejects rows wider than PostgreSQL's column limit
+select * from csv_read(
+  null::projects,
+  array_to_string(array_fill('x'::text, ARRAY[1601]), ',')
+);
+ERROR:  CSV row has more than 1600 columns, which is the maximum in postgres.
+\echo
+
+-- fails at parse errors
+select * from csv_read(null::projects, E'1,""IOS,4');
+ERROR:  invalid CSV at row 1: expected newline or end of input

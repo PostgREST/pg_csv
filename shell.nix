@@ -26,10 +26,18 @@ mkShellNoCC {
 
         pg_ver=$1
 
+        make bench > /dev/null
+
         for file in ./bench/*.sql; do
 
         if [ "$file" = ./bench/init.sql ]; then
           continue
+        fi
+
+        duration=30
+        if [ "$file" = ./bench/native_copy.sql ] ||
+           [ "$file" = ./bench/csv_read.sql ]; then
+          duration=120
         fi
 
         cat <<EOF
@@ -45,13 +53,14 @@ mkShellNoCC {
         results:
 
         \`\`\`
-        $(${xpg.xpg}/bin/xpg -v "$pg_ver" pgbench -n -c 1 -T 30 -M simple -f "$file")
+        $(${xpg.xpg}/bin/xpg -v "$pg_ver" pgbench -n -c 1 -T "$duration" -M simple -f "$file")
         \`\`\`
         EOF
 
         done
       '';
     in [
+      p7zip
       xpg.xpg
       style
       styleCheck
