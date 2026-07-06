@@ -10,3 +10,4 @@ pgbench_log.*
 pg_csv--*.sql
 !pg_csv--*--*.sql
 tags
+bench/data/customers-1000000.csv
