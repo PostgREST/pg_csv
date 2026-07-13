@@ -29,6 +29,11 @@ create function csv_agg_finalfn(internal)
   language c
 as 'MODULE_PATHNAME';
 
+create function csv_populate_recordset(anyelement, text, has_header bool default false)
+  returns setof anyelement
+  language c
+as 'MODULE_PATHNAME';
+
 create aggregate csv_agg(anyelement) (
   sfunc     = csv_agg_transfn,
   stype     = internal,

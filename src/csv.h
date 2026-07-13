@@ -35,9 +35,9 @@ static CpcResult unescape_quoted(__attribute__((unused)) CpcArena *A, const CpcV
   return cpc_res_ok(cpc_val_slice((CpcSlice){.ptr = out, .len = dst}), rest);
 }
 
-
 extern CpcResult csvRow(CpcSlice input, CpcArena *A, const char *err);
 
+// clang-format off
 static inline CPC_TAKE_QUOTED(quoted, '"', '"')
 static inline CPC_MAP(quotedField, quoted, unescape_quoted)
 static inline CPC_TAKE_TILL_ONE_OF(unquotedField, ",\r\n")
@@ -48,5 +48,6 @@ static inline CPC_SEP_BY_1(record, field, comma)
 static inline CPC_ALT(lineEnd_, CPC_END_OF_LINE_, CPC_EOF_)
 static inline CPC_LABEL(lineEnd, lineEnd_, "end of line")
 CPC_LEFT(csvRow, record, lineEnd)
+// clang-format on
 
 #endif

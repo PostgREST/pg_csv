@@ -1,0 +1,12 @@
+select * from csv_populate_recordset(null::projects, E'id,name,client_id\n1,IOS,4', true);
+ id | name | client_id 
+----+------+-----------
+  1 | IOS  |         4
+(1 row)
+
+select * from csv_populate_recordset(null::projects, E'1,IOS,4');
+ id | name | client_id 
+----+------+-----------
+  1 | IOS  |         4
+(1 row)
+
