@@ -62,6 +62,9 @@ $(BUILD_DIR)/.gitignore: sql/$(EXTENSION)--$(EXTVERSION).sql $(EXTENSION).contro
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(BUILD_DIR)/.gitignore
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/pg_csv.o: $(SRC_DIR)/csv.h $(SRC_DIR)/cparsec.h
+src/pg_csv.o: $(SRC_DIR)/csv.h $(SRC_DIR)/cparsec.h
+
 $(BUILD_DIR)/$(EXTENSION).$(SHARED_EXT): $(EXTENSION).$(SHARED_EXT)
 	mv $? $@
 
