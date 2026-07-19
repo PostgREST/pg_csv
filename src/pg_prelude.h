@@ -19,6 +19,7 @@
 #include <commands/extension.h>
 #include <executor/spi.h>
 #include <fmgr.h>
+#include <funcapi.h>
 #include <miscadmin.h>
 #include <nodes/makefuncs.h>
 #include <nodes/pg_list.h>
@@ -44,6 +45,7 @@
 #include <utils/memutils.h>
 #include <utils/regproc.h>
 #include <utils/snapmgr.h>
+#include <utils/tuplestore.h>
 #include <utils/typcache.h>
 #include <utils/varlena.h>
 
