@@ -6,7 +6,7 @@
 
 Postgres has CSV support on the [COPY](https://www.postgresql.org/docs/current/sql-copy.html) command, but `COPY` has problems:
 
-- It uses a special protocol, so it doesn't work with other standard features like [prepared statements](https://www.postgresql.org/docs/current/sql-prepare.html), [pipeline mode](https://www.postgresql.org/docs/current/libpq-pipeline-mode.html#LIBPQ-PIPELINE-USING) or [pgbench](https://www.postgresql.org/docs/current/pgbench.html).
+- It uses a subprotocol, so it doesn't work with other standard features like [prepared statements](https://www.postgresql.org/docs/current/sql-prepare.html), [pipeline mode](https://www.postgresql.org/docs/current/libpq-pipeline-mode.html#LIBPQ-PIPELINE-USING) or [pgbench](https://www.postgresql.org/docs/current/pgbench.html).
 - Is not composable. You can't use COPY inside CTEs, subqueries, view definitions or as function arguments.
 
 `pg_csv` offers flexible CSV processing as a solution.
@@ -148,4 +148,4 @@ FROM   projects x;
 
 ## Limitations
 
-- For large bulk exports and imports, `COPY ... CSV` should still be preferred as its faster due to streaming support.
+- For large bulk exports and imports, `COPY ... CSV` should still be preferred as it's more memory efficient due to streaming support.
