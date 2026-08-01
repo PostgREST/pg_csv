@@ -1,4 +1,4 @@
-// Vendored CParseC v2.1.0 from https://github.com/steve-chavez/CParseC
+// Vendored CParseC v2.3.0 from https://github.com/steve-chavez/CParseC
 #ifndef CPARSEC_H_INCLUDED
 #define CPARSEC_H_INCLUDED
 
@@ -7,6 +7,14 @@
 
 #if defined(CPC_USE_STRING_H)
 #  include <string.h>
+#endif
+
+// All the functions have to be static inline to ensure good performance (some experiments indicate
+// almost x2 perf drop if they're not inline). Right now the `cpc_arena_*` functions don't need to
+// be inline but since they're quite small the savings don't seem worth to separate the definition
+// and implementation in typical STB-style with `CPC_DEFINE_IMPLEMENTATION`.
+#ifndef CPCAPI
+#  define CPCAPI static inline
 #endif
 
 // The basic element of the parser are string slices to enable zero-copy parsing
@@ -22,7 +30,7 @@ typedef struct {
 } CpcList;
 
 // obtain a CpcSlice from a c string
-static inline CpcSlice cpc_slice_from_cstr(const char *s) {
+CPCAPI CpcSlice cpc_slice_from_cstr(const char *s) {
 #if defined(CPC_USE_STRING_H)
   return (CpcSlice){.ptr = s, .len = strlen(s)};
 // The non string.h implementation of this function is very basic and scans byte by byte instead of
@@ -38,7 +46,7 @@ static inline CpcSlice cpc_slice_from_cstr(const char *s) {
 }
 
 // a sub region of the slice
-static inline CpcSlice cpc_slice_sub(CpcSlice s, size_t start, size_t len) {
+CPCAPI CpcSlice cpc_slice_sub(CpcSlice s, size_t start, size_t len) {
   return (CpcSlice){.ptr = s.ptr + start, .len = len};
 }
 
@@ -58,18 +66,17 @@ typedef struct {
   CpcValue *items;  // storage items
   size_t    cap;    // capacity
   size_t    offset; // bump pointer offset [0..cap]
-  void     *user;   // user pointer data for use on the fmap, we don't handle its
-                    // lifecycle
+  void     *user;   // user pointer data, we don't handle its lifecycle
 } CpcArena;
 
 // the signature is like this because both the arena and the items have to be
 // declared separately to allow static or stack allocation
-static inline void cpc_arena_init(CpcArena *a, CpcValue *items, size_t cap, void *user) {
+CPCAPI void cpc_arena_init(CpcArena *a, CpcValue *items, size_t cap, void *user) {
   *a = (CpcArena){.items = items, .cap = cap, .offset = 0, .user = user};
 }
 
 // reset the arena offset
-static inline void cpc_arena_reset(CpcArena *a) {
+CPCAPI void cpc_arena_reset(CpcArena *a) {
   a->offset = 0;
 }
 
@@ -93,55 +100,55 @@ typedef struct {
   CpcErr   err;
 } CpcResult;
 
-static inline CpcResult cpc_res_ok(CpcValue out, CpcSlice rest) {
+CPCAPI CpcResult cpc_res_ok(CpcValue out, CpcSlice rest) {
   return (CpcResult){
     .out = out, .rest = rest, .ok = true, .err = {.kind = CPC_ERR_NONE, .msg = NULL}};
 }
 
 // Allows to specify a default error message with an overriding label
-static inline CpcResult cpc_res_err(CpcSlice rest, const char *def, const char *label) {
+CPCAPI CpcResult cpc_res_err(CpcSlice rest, const char *def, const char *label) {
   return (CpcResult){.out  = (CpcValue){.kind = CPC_NOTHING},
                      .rest = rest,
                      .ok   = false,
                      .err  = {.kind = CPC_ERR_PARSE, .msg = label ? label : def}};
 }
 
-static inline CpcResult cpc_res_internal_err(CpcSlice rest, CpcErrKind kind) {
+CPCAPI CpcResult cpc_res_internal_err(CpcSlice rest, CpcErrKind kind) {
   return (CpcResult){.out  = (CpcValue){.kind = CPC_NOTHING},
                      .rest = rest,
                      .ok   = false,
                      .err  = {.kind = kind, .msg = NULL}};
 }
 
-static inline CpcValue cpc_val_slice(CpcSlice s) {
+CPCAPI CpcValue cpc_val_slice(CpcSlice s) {
   return (CpcValue){.kind = CPC_SLICE, .as.slice = s};
 }
 
-static inline CpcValue cpc_val_list(CpcArena *A) {
+CPCAPI CpcValue cpc_val_list(CpcArena *A) {
   return (CpcValue){.kind = CPC_LIST, .as.list = {.start = A->offset, .len = 0}};
 }
 
-static inline CpcValue cpc_val_nothing(void) {
+CPCAPI CpcValue cpc_val_nothing(void) {
   return (CpcValue){.kind = CPC_NOTHING};
 }
 
-static inline CpcValue cpc_val_ptr(void *p) {
+CPCAPI CpcValue cpc_val_ptr(void *p) {
   return (CpcValue){.kind = CPC_PTR, .as.ptr = p};
 }
 
-static inline bool cpc_is_list(const CpcValue *v) {
+CPCAPI bool cpc_is_list(const CpcValue *v) {
   return v && v->kind == CPC_LIST;
 }
 
-static inline bool cpc_is_slice(const CpcValue *v) {
+CPCAPI bool cpc_is_slice(const CpcValue *v) {
   return v && v->kind == CPC_SLICE;
 }
 
-static inline bool cpc_is_nothing(const CpcValue *v) {
+CPCAPI bool cpc_is_nothing(const CpcValue *v) {
   return v && v->kind == CPC_NOTHING;
 }
 
-static inline bool cpc_val_list_push(CpcArena *A, CpcValue *list, CpcValue x) {
+CPCAPI bool cpc_val_list_push(CpcArena *A, CpcValue *list, CpcValue x) {
   // TODO differentiate between these errors
   if (!A) return false;
   if (!cpc_is_list(list)) return false;
@@ -153,7 +160,7 @@ static inline bool cpc_val_list_push(CpcArena *A, CpcValue *list, CpcValue x) {
   return true;
 }
 
-static inline const CpcValue *cpc_val_list_at(const CpcArena *A, const CpcValue *list, size_t i) {
+CPCAPI const CpcValue *cpc_val_list_at(const CpcArena *A, const CpcValue *list, size_t i) {
   if (!A || !cpc_is_list(list) || i >= list->as.list.len) return NULL;
   return &A->items[list->as.list.start + i];
 }
@@ -162,7 +169,7 @@ static inline const CpcValue *cpc_val_list_at(const CpcArena *A, const CpcValue 
 // This condition ensures all the parsers never cause infinite loops, which is a
 // problem in Haskell Parsec. See
 // https://hackage.haskell.org/package/attoparsec-0.14.4/docs/Data-Attoparsec-ByteString.html#v:takeWhile
-static inline bool cpc_no_progress_made(const CpcSlice cur, const CpcSlice prev) {
+CPCAPI bool cpc_no_progress_made(const CpcSlice cur, const CpcSlice prev) {
   return (cur.ptr == prev.ptr && cur.len == prev.len);
 }
 
@@ -196,7 +203,9 @@ static inline bool cpc_no_progress_made(const CpcSlice cur, const CpcSlice prev)
 #define CPC_CONCAT(x, y) CPC_CONCAT_(x, y)
 
 // Helper for runtime parser user data
+// TODO remove CPC_CTX in next major, prefer using CPC_USER
 #define CPC_CTX(type, field) (((const type *)A->user)->field)
+#define CPC_USER(type, field) (((type *)A->user)->field)
 
 // This is more like Parsec `string'`, which doesn't consume the matching
 // prefix. We do this to avoid having a `try` function and working better with
@@ -229,7 +238,7 @@ static inline bool cpc_no_progress_made(const CpcSlice cur, const CpcSlice prev)
 
 // Succeeds if there is at least one character of input. Returns the parsed character.
 #define CPC_ANY(name) ___CPC_ANY(name)
-static inline ___CPC_ANY(CPC_ANY_)
+CPCAPI ___CPC_ANY(CPC_ANY_)
 
 // Succeeds if the character is in the supplied string. Returns the parsed character.
 #define CPC_ONE_OF(name, chars)                                                                    \
@@ -491,19 +500,30 @@ static inline ___CPC_ANY(CPC_ANY_)
       if (input.len < 2 || input.ptr[0] != (quote))                                                \
         return cpc_res_err(input, "missing quote", err);                                           \
       /* start after the opening quote */                                                          \
-      size_t span = 1;                                                                             \
-      while (span < input.len) {                                                                   \
-        /* Jump to the next quote candidate instead of scanning char by char */                    \
-        const char *p = memchr(input.ptr + span, (quote), input.len - span);                       \
-        if (!p) break;                                                                             \
-        size_t idx = (size_t)(p - input.ptr);                                                      \
-        if ((escape) == (quote)) {                                                                 \
+      if ((escape) == (quote)) {                                                                   \
+        size_t span = 1;                                                                           \
+        while (span < input.len) {                                                                 \
+          /* Jump to the next quote candidate instead of scanning char by char */                  \
+          const char *p = memchr(input.ptr + span, (quote), input.len - span);                     \
+          if (!p) break;                                                                           \
+          size_t idx = (size_t)(p - input.ptr);                                                    \
           if ((idx + 1) < input.len && input.ptr[idx + 1] == (quote)) {                            \
             /* A doubled quote is escaped content inside the quoted span */                        \
             span = idx + 2;                                                                        \
             continue;                                                                              \
           }                                                                                        \
-        } else {                                                                                   \
+          /* A lone quote closes the span, including the opening quote at index 0 */               \
+          span = idx + 1;                                                                          \
+          return cpc_res_ok(cpc_val_slice(cpc_slice_sub(input, 0, span)),                          \
+                            cpc_slice_sub(input, span, input.len - span));                         \
+        }                                                                                          \
+      } else {                                                                                     \
+        size_t span = 1;                                                                           \
+        while (span < input.len) {                                                                 \
+          /* Jump to the next quote candidate instead of scanning char by char */                  \
+          const char *p = memchr(input.ptr + span, (quote), input.len - span);                     \
+          if (!p) break;                                                                           \
+          size_t idx     = (size_t)(p - input.ptr);                                                \
           size_t escapes = 0;                                                                      \
           /* Count consecutive escape chars immediately before this quote candidate. */            \
           while (idx > escapes && input.ptr[idx - 1 - escapes] == (escape))                        \
@@ -516,11 +536,11 @@ static inline ___CPC_ANY(CPC_ANY_)
             span = idx + 1;                                                                        \
             continue;                                                                              \
           }                                                                                        \
+          /* A lone quote closes the span, including the opening quote at index 0 */               \
+          span = idx + 1;                                                                          \
+          return cpc_res_ok(cpc_val_slice(cpc_slice_sub(input, 0, span)),                          \
+                            cpc_slice_sub(input, span, input.len - span));                         \
         }                                                                                          \
-        /* A lone quote closes the span, including the opening quote at index 0 */                 \
-        span = idx + 1;                                                                            \
-        return cpc_res_ok(cpc_val_slice(cpc_slice_sub(input, 0, span)),                            \
-                          cpc_slice_sub(input, span, input.len - span));                           \
       }                                                                                            \
       /* err if no closing quote is found */                                                       \
       return cpc_res_err(input, "missing quote", err);                                             \
@@ -535,7 +555,7 @@ static inline ___CPC_ANY(CPC_ANY_)
 
 // parser that only matches if all the input has been consumed
 #define CPC_EOF(name) ___CPC_EOF(name)
-    static inline ___CPC_EOF(CPC_EOF_)
+CPCAPI ___CPC_EOF(CPC_EOF_)
 
 #define ___CPC_END_OF_LINE(name)                                                                   \
   CPC_DEFINE_PARSER(name) {                                                                        \
@@ -556,6 +576,6 @@ static inline ___CPC_ANY(CPC_ANY_)
 
 // Parses a CRLF (see crlf) or LF (see newline) end-of-line
 #define CPC_END_OF_LINE(name) ___CPC_END_OF_LINE(name)
-        static inline ___CPC_END_OF_LINE(CPC_END_OF_LINE_)
+CPCAPI ___CPC_END_OF_LINE(CPC_END_OF_LINE_)
 
 #endif /* CPARSEC_H_INCLUDED */
