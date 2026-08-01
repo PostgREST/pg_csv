@@ -1,3 +1,4 @@
+-- custom query that outputs csv, copied from PostgREST
 \set lim random(1000, 2000)
 
 with pgrst_source as (
