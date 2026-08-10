@@ -24,22 +24,27 @@ mkShellNoCC {
       writeShellScriptBin "pg_csv-loadtest" ''
         set -euo pipefail
 
-        file=./bench/$1.sql
+        for file in ./bench/*.sql; do
+
+        if [ "$file" = ./bench/init.sql ]; then
+          continue
+        fi
 
         cat <<EOF
         pgbench running for:
 
         \`\`\`sql
-        $(< $file)
+        $(< "$file")
         \`\`\`
 
         results:
 
         \`\`\`
-        $(${xpg.xpg}/bin/xpg pgbench -n -c 1 -T 30 -M simple -f $file)
+        $(${xpg.xpg}/bin/xpg pgbench -n -c 1 -T 30 -M simple -f "$file")
         \`\`\`
-
         EOF
+
+        done
       '';
     in [
       xpg.xpg

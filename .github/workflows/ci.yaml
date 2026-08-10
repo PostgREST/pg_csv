@@ -35,9 +35,6 @@ jobs:
           cat regression.diffs
 
   loadtest:
-    strategy:
-      matrix:
-        kind: ['custom_csv', 'csv_agg']
     name: Loadtest
     runs-on: ubuntu-24.04
     steps:
@@ -55,7 +52,7 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Run loadtest
-        run: nix-shell --run "pg_csv-loadtest ${{ matrix.kind }}" >> "$GITHUB_STEP_SUMMARY"
+        run: nix-shell --run "pg_csv-loadtest" >> "$GITHUB_STEP_SUMMARY"
 
   coverage:
 
