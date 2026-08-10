@@ -34,8 +34,8 @@ jobs:
           cat regression.out
           cat regression.diffs
 
-  loadtest:
-    name: Loadtest
+  bench:
+    name: bench
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -51,8 +51,8 @@ jobs:
           name: nxpg
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Run loadtest
-        run: nix-shell --run "pg_csv-loadtest" >> "$GITHUB_STEP_SUMMARY"
+      - name: Run bench
+        run: nix-shell --run "pg_csv-bench" >> "$GITHUB_STEP_SUMMARY"
 
   coverage:
 

@@ -20,8 +20,8 @@ mkShellNoCC {
         ${clang-tools}/bin/clang-format -i src/*
         ${git}/bin/git diff-index --exit-code HEAD -- '*.c'
       '';
-    loadtest =
-      writeShellScriptBin "pg_csv-loadtest" ''
+    bench =
+      writeShellScriptBin "pg_csv-bench" ''
         set -euo pipefail
 
         for file in ./bench/*.sql; do
@@ -31,6 +31,9 @@ mkShellNoCC {
         fi
 
         cat <<EOF
+
+        ## "$file"
+
         pgbench running for:
 
         \`\`\`sql
@@ -50,7 +53,7 @@ mkShellNoCC {
       xpg.xpg
       style
       styleCheck
-      loadtest
+      bench
       gcc15
     ];
   shellHook = ''
