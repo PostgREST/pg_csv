@@ -36,7 +36,7 @@ mkShellNoCC {
         results:
 
         \`\`\`
-        $(${xpg.xpg}/bin/xpg pgbench -n -c 1 -T 30 -M prepared -f $file)
+        $(${xpg.xpg}/bin/xpg pgbench -n -c 1 -T 30 -M simple -f $file)
         \`\`\`
 
         EOF
