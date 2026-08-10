@@ -24,6 +24,8 @@ mkShellNoCC {
       writeShellScriptBin "pg_csv-bench" ''
         set -euo pipefail
 
+        pg_ver=$1
+
         for file in ./bench/*.sql; do
 
         if [ "$file" = ./bench/init.sql ]; then
@@ -43,7 +45,7 @@ mkShellNoCC {
         results:
 
         \`\`\`
-        $(${xpg.xpg}/bin/xpg pgbench -n -c 1 -T 30 -M simple -f "$file")
+        $(${xpg.xpg}/bin/xpg -v "$pg_ver" pgbench -n -c 1 -T 30 -M simple -f "$file")
         \`\`\`
         EOF
 

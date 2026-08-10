@@ -37,6 +37,9 @@ jobs:
   bench:
     name: bench
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        pg-version: ['19']
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +55,7 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Run bench
-        run: nix-shell --run "pg_csv-bench" >> "$GITHUB_STEP_SUMMARY"
+        run: nix-shell --run "pg_csv-bench ${{ matrix.pg-version }}" >> "$GITHUB_STEP_SUMMARY"
 
   coverage:
 
