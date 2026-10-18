@@ -26,7 +26,17 @@ mkShellNoCC {
 
         pg_ver=$1
 
-        make bench > /dev/null
+        make bench >&2
+
+        csv_path="$PWD/bench/data/customers-1000000.csv"
+        if [ ! -r "$csv_path" ]; then
+          7z e -y bench/data/customers-1000000.7z \
+            -obench/data
+        fi
+        if [ ! -s "$csv_path" ]; then
+          echo "pg_csv-bench: benchmark CSV was not created or is empty: $csv_path" >&2
+          exit 1
+        fi
 
         for file in ./bench/*.sql; do
 
@@ -35,10 +45,6 @@ mkShellNoCC {
         fi
 
         duration=30
-        if [ "$file" = ./bench/native_copy.sql ] ||
-           [ "$file" = ./bench/csv_read.sql ]; then
-          duration=120
-        fi
 
         cat <<EOF
 

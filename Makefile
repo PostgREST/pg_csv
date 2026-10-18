@@ -72,7 +72,8 @@ $(BUILD_DIR)/$(EXTENSION).$(SHARED_EXT): $(EXTENSION).$(SHARED_EXT)
 	mv $? $@
 
 $(BENCH_DATA_DIR)/customers-1000000.csv: $(BENCH_DATA_DIR)/customers-1000000.7z
-	7z e -y $< -o$(BENCH_DATA_DIR) $(notdir $@)
+	7z e -y $< -o$(BENCH_DATA_DIR)
+	test -s $@
 # needed to not decompress everytime, 7z preserves archive original timestamp and that trips up make
 	touch $@
 
