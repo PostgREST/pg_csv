@@ -1,12 +1,12 @@
-// Vendored CParseC v2.3.0 from https://github.com/steve-chavez/CParseC
+// CParseC v2.4.0
 #ifndef CPARSEC_H_INCLUDED
 #define CPARSEC_H_INCLUDED
 
 #include <stdbool.h>
 #include <stddef.h>
 
-#if defined(CPC_USE_STRING_H)
-#  include <string.h>
+#if defined(__SSE2__)
+#  include <emmintrin.h>
 #endif
 
 // All the functions have to be static inline to ensure good performance (some experiments indicate
@@ -16,6 +16,29 @@
 #ifndef CPCAPI
 #  define CPCAPI static inline
 #endif
+
+// check for availability of __builtin_ctz
+#if defined(__has_builtin)
+#  if __has_builtin(__builtin_ctz)
+#    define CPC_HAS_BUILTIN_CTZ
+#  endif
+#elif defined(__GNUC__) || defined(__clang__)
+#  define CPC_HAS_BUILTIN_CTZ
+#endif
+
+// it requires a nonzero value
+CPCAPI unsigned ___cpc_count_trailing_zeros(unsigned value) {
+#if defined(CPC_HAS_BUILTIN_CTZ)
+  return (unsigned)__builtin_ctz(value);
+#else // provide a simple fallback if not available
+  unsigned count = 0;
+  while ((value & 1u) == 0) {
+    value >>= 1;
+    count++;
+  }
+  return count;
+#endif
+}
 
 // The basic element of the parser are string slices to enable zero-copy parsing
 typedef struct {
@@ -31,18 +54,15 @@ typedef struct {
 
 // obtain a CpcSlice from a c string
 CPCAPI CpcSlice cpc_slice_from_cstr(const char *s) {
-#if defined(CPC_USE_STRING_H)
-  return (CpcSlice){.ptr = s, .len = strlen(s)};
-// The non string.h implementation of this function is very basic and scans byte by byte instead of
-// word by word. We can optimize this as discussed on
-// https://github.com/steve-chavez/CParseC/issues/3, but for now we leave that to `strlen` for
-// environments that use string.h. glibc `strlen` has various optimizations including SIMD.
-#else
+  // TODO This is a very basic implementation and scans byte by byte instead of
+  // word by word. We can optimize this as discussed on
+  // https://github.com/steve-chavez/CParseC/issues/3
+  // Note: `strlen` has various optimizations but it would require including <string.h> which
+  // doesn't seem worth it anymore now that we do native SIMD
   size_t n = 0;
   while (s[n] != '\0')
     n++;
   return (CpcSlice){.ptr = s, .len = n};
-#endif
 }
 
 // a sub region of the slice
@@ -457,9 +477,9 @@ CPCAPI ___CPC_ANY(CPC_ANY_)
 #define CPC_MATCH(name, parser)                                                                    \
   CPC_DEFINE_PARSER(name) {                                                                        \
     /* mark is for restoring the arena state */                                                    \
-    size_t    mark = A->offset;                                                                    \
+    size_t    mark = A ? A->offset : 0;                                                            \
     CpcResult r    = CPC_PARSE(parser, input, A, err);                                             \
-    A->offset      = mark;                                                                         \
+    if (A) A->offset = mark;                                                                       \
     return r.ok ? cpc_res_ok(                                                                      \
                       cpc_val_slice(cpc_slice_sub(input, 0, (size_t)(r.rest.ptr - input.ptr))),    \
                       r.rest)                                                                      \
@@ -478,74 +498,97 @@ CPCAPI ___CPC_ANY(CPC_ANY_)
                       cpc_slice_sub(input, i, input.len - i));                                     \
   }
 
-#if defined(CPC_USE_STRING_H)
-// combination of CPC_TAKE_TILL + CPC_ONE_OF that is SIMD-friendly thanks
-// to memchr
-#  define CPC_TAKE_TILL_ONE_OF(name, stops)                                                        \
-    CPC_DEFINE_PARSER(name) {                                                                      \
-      size_t end = input.len;                                                                      \
-      for (const char *s = (stops); *s; ++s) {                                                     \
-        const char *p = memchr(input.ptr, *s, end);                                                \
-        if (p) end = (size_t)(p - input.ptr);                                                      \
-      }                                                                                            \
-      return cpc_res_ok(cpc_val_slice(cpc_slice_sub(input, 0, end)),                               \
-                        cpc_slice_sub(input, end, input.len - end));                               \
-    }
+// Find the first byte in input that occurs in the stops string
+CPCAPI size_t ___cpc_find_first_of(const char *input, size_t len, const char *stops,
+                                   size_t stop_len) {
+  size_t i = 0;
+
+#if defined(__SSE2__)
+  const size_t simd_width = 16;
+
+  // Scan complete SIMD blocks, the unaligned load works for any input address
+  for (; i + simd_width <= len; i += simd_width) {
+    const __m128i bytes = _mm_loadu_si128((const __m128i *)(input + i));
+    __m128i       match = _mm_setzero_si128();
+    for (size_t j = 0; j < stop_len; ++j)
+      match = _mm_or_si128(match, _mm_cmpeq_epi8(bytes, _mm_set1_epi8(stops[j])));
+    const unsigned mask = (unsigned)_mm_movemask_epi8(match);
+    // ctz identifies the first match index; it is undefined for zero.
+    if (mask != 0) return i + (size_t)___cpc_count_trailing_zeros(mask);
+  }
+#endif
+
+  // SIMD scans only complete blocks; scan the remaining bytes here.
+  // This also provides the entire implementation on targets without SSE2.
+  for (; i < len; ++i)
+    for (size_t j = 0; j < stop_len; ++j)
+      if (input[i] == stops[j]) return i;
+  return len;
+}
+
+// combination of CPC_TAKE_TILL + CPC_ONE_OF
+#define CPC_TAKE_TILL_ONE_OF(name, stops)                                                          \
+  CPC_DEFINE_PARSER(name) {                                                                        \
+    size_t end = ___cpc_find_first_of(input.ptr, input.len, (stops), sizeof(stops) - 1);           \
+    return cpc_res_ok(cpc_val_slice(cpc_slice_sub(input, 0, end)),                                 \
+                      cpc_slice_sub(input, end, input.len - end));                                 \
+  }
 
 // Parses a quoted string and returns a slice. Using the escape char to treat escaped content.
-#  define CPC_TAKE_QUOTED(name, quote, escape)                                                     \
-    CPC_DEFINE_PARSER(name) {                                                                      \
-      /* rejects anything that is too short (quoted would need at least 3 chars) or does not start \
-       * with the quote*/                                                                          \
-      if (input.len < 2 || input.ptr[0] != (quote))                                                \
-        return cpc_res_err(input, "missing quote", err);                                           \
-      /* start after the opening quote */                                                          \
-      if ((escape) == (quote)) {                                                                   \
-        size_t span = 1;                                                                           \
-        while (span < input.len) {                                                                 \
-          /* Jump to the next quote candidate instead of scanning char by char */                  \
-          const char *p = memchr(input.ptr + span, (quote), input.len - span);                     \
-          if (!p) break;                                                                           \
-          size_t idx = (size_t)(p - input.ptr);                                                    \
-          if ((idx + 1) < input.len && input.ptr[idx + 1] == (quote)) {                            \
-            /* A doubled quote is escaped content inside the quoted span */                        \
-            span = idx + 2;                                                                        \
-            continue;                                                                              \
-          }                                                                                        \
-          /* A lone quote closes the span, including the opening quote at index 0 */               \
-          span = idx + 1;                                                                          \
-          return cpc_res_ok(cpc_val_slice(cpc_slice_sub(input, 0, span)),                          \
-                            cpc_slice_sub(input, span, input.len - span));                         \
+#define CPC_TAKE_QUOTED(name, quote, escape)                                                       \
+  CPC_DEFINE_PARSER(name) {                                                                        \
+    /* rejects anything that is too short (quoted would need at least 3 chars) or does not start   \
+     * with the quote*/                                                                            \
+    if (input.len < 2 || input.ptr[0] != (quote)) return cpc_res_err(input, "missing quote", err); \
+    const char cpc_quote_ = (quote);                                                               \
+    /* start after the opening quote */                                                            \
+    if ((escape) == (quote)) {                                                                     \
+      size_t span = 1;                                                                             \
+      while (span < input.len) {                                                                   \
+        /* Jump to the next quote candidate instead of scanning char by char */                    \
+        const size_t quote_offset =                                                                \
+            ___cpc_find_first_of(input.ptr + span, input.len - span, &cpc_quote_, 1);              \
+        if (quote_offset == input.len - span) break;                                               \
+        size_t idx = span + quote_offset;                                                          \
+        if ((idx + 1) < input.len && input.ptr[idx + 1] == (quote)) {                              \
+          /* A doubled quote is escaped content inside the quoted span */                          \
+          span = idx + 2;                                                                          \
+          continue;                                                                                \
         }                                                                                          \
-      } else {                                                                                     \
-        size_t span = 1;                                                                           \
-        while (span < input.len) {                                                                 \
-          /* Jump to the next quote candidate instead of scanning char by char */                  \
-          const char *p = memchr(input.ptr + span, (quote), input.len - span);                     \
-          if (!p) break;                                                                           \
-          size_t idx     = (size_t)(p - input.ptr);                                                \
-          size_t escapes = 0;                                                                      \
-          /* Count consecutive escape chars immediately before this quote candidate. */            \
-          while (idx > escapes && input.ptr[idx - 1 - escapes] == (escape))                        \
-            escapes++;                                                                             \
-                                                                                                   \
-          /* A quote preceded by an odd number of escape chars is escaped content. */              \
-          /* An even number like `//"` would mean that the backlash itself is escaped plus */      \
-          /* `"` would be a lone quote. */                                                         \
-          if ((escapes & 1u) != 0) {                                                               \
-            span = idx + 1;                                                                        \
-            continue;                                                                              \
-          }                                                                                        \
-          /* A lone quote closes the span, including the opening quote at index 0 */               \
-          span = idx + 1;                                                                          \
-          return cpc_res_ok(cpc_val_slice(cpc_slice_sub(input, 0, span)),                          \
-                            cpc_slice_sub(input, span, input.len - span));                         \
-        }                                                                                          \
+        /* A lone quote closes the span, including the opening quote at index 0 */                 \
+        span = idx + 1;                                                                            \
+        return cpc_res_ok(cpc_val_slice(cpc_slice_sub(input, 0, span)),                            \
+                          cpc_slice_sub(input, span, input.len - span));                           \
       }                                                                                            \
-      /* err if no closing quote is found */                                                       \
-      return cpc_res_err(input, "missing quote", err);                                             \
-    }
-#endif
+    } else {                                                                                       \
+      size_t span = 1;                                                                             \
+      while (span < input.len) {                                                                   \
+        /* Jump to the next quote candidate instead of scanning char by char */                    \
+        const size_t quote_offset =                                                                \
+            ___cpc_find_first_of(input.ptr + span, input.len - span, &cpc_quote_, 1);              \
+        if (quote_offset == input.len - span) break;                                               \
+        size_t idx     = span + quote_offset;                                                      \
+        size_t escapes = 0;                                                                        \
+        /* Count consecutive escape chars immediately before this quote candidate. */              \
+        while (idx > escapes && input.ptr[idx - 1 - escapes] == (escape))                          \
+          escapes++;                                                                               \
+                                                                                                   \
+        /* A quote preceded by an odd number of escape chars is escaped content. */                \
+        /* An even number like `//"` would mean that the backlash itself is escaped plus */        \
+        /* `"` would be a lone quote. */                                                           \
+        if ((escapes & 1u) != 0) {                                                                 \
+          span = idx + 1;                                                                          \
+          continue;                                                                                \
+        }                                                                                          \
+        /* A lone quote closes the span, including the opening quote at index 0 */                 \
+        span = idx + 1;                                                                            \
+        return cpc_res_ok(cpc_val_slice(cpc_slice_sub(input, 0, span)),                            \
+                          cpc_slice_sub(input, span, input.len - span));                           \
+      }                                                                                            \
+    }                                                                                              \
+    /* err if no closing quote is found */                                                         \
+    return cpc_res_err(input, "missing quote", err);                                               \
+  }
 
 #define ___CPC_EOF(name)                                                                           \
   CPC_DEFINE_PARSER(name) {                                                                        \
