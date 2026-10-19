@@ -152,7 +152,9 @@ FROM   projects x;
 
 ### csv_read
 
-The `csv_read` function can read inline text values, respecting quoting and escaping inside quotes.
+The `csv_read` function can read inline CSV, respecting quoting and escaping inside quotes.
+
+`csv_read` approaches native COPY CSV performance: around 17% slower when reading 1 million CSV rows (see CI for results). This due to using [CParseC](https://github.com/PostgREST/CParseC), which has SIMD optimizations.
 
 ```sql
 select id, name
@@ -162,7 +164,7 @@ from csv_read(null::projects, E'1,IOS,4\n2,"Win""dows",4') where id = 2;
   2 | Win"dows
 ```
 
-It can also be used to read from files inside the data directory.
+`csv_read` can be used to read from files inside the data directory.
 
 ```sql
 select "First Name", "Company", "Website"
@@ -176,7 +178,7 @@ where "Index" = '4';
  Linda | Dominguez, Mcmillan and Donovan | http://www.good-lyons.com/ |           |         |      |         |         |         |       |                   |
 ```
 
-This combines as usual with the `insert` statement.
+And combines as usual with the `insert` statement.
 
 ```sql
 insert into customers
